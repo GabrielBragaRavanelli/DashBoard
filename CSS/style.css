@@ -11,8 +11,10 @@ body{
 }
 
 :root {
-    --verde-agua:#235347;
-       
+    --branco: #fff;
+    --preto:#000000;
+    --cinza:#aeaeae;
+    --azul-ajborges: #3d3d90;
 }
 
 
@@ -26,5 +28,124 @@ body{
   z-index: 1000;
   background-color: var(--verde-agua);
 }
+
+.lista-links li{
+    display: flex;
+    justify-content: space-between;
+}
+
+.lista-links li a {
+    text-decoration: none;
+    color: var(--branco);
+}
+
 /* --- MAIN --- */
+
+.bloco-central{
+    display: flex;
+    justify-content: column;
+    gap: 20px;
+    
+}
+
+.bloco-portalmotorista{
+    
+    border: 1px solid var(--cinza);
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+}
+
+.bloco-portalmotorista:hover{
+    border: 1px solid var(--preto);
+}
+
+.bloco-portalmotorista h1{
+    font-size: 18px;
+    font-weight: bold;  
+}
+
+.bloco-portalmotorista p{
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.bloco-semlogin{
+    border: 1px solid var(--cinza);
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+}
+
+.bloco-semlogin:hover{
+    border: 1px solid var(--preto);
+}
+
+.bloco-semlogin h1{
+    font-size: 18px;
+    font-weight: bold; 
+}
+
+.bloco-semlogin p{
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.bloco-semlogin button{
+    width: 75%;
+    height: 30px;
+    border: 1px solid var(--cinza);
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.bloco-semlogin button a{
+    font-size: 16px;
+    color: var(--preto);
+    text-decoration: none;
+}
+
+.bloco-semlogin button:hover{
+    
+}
+
+.bloco-comlogin{
+    border: 1px solid var(--cinza);
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+}
+
+.bloco-comlogin:hover{
+    border: 1px solid var(--preto);
+}
+
+.bloco-comlogin h1{
+    font-size: 18px;
+    font-weight: bold; 
+}
+
+.bloco-semlogin p{
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.bloco-comlogin button{
+    width: 75%;
+    height: 30px;
+    border: 1px solid var(--cinza);
+    border-radius: 5px;
+    background-color: var(--azul-ajborges);
+    cursor: pointer;
+}
+
+.bloco-comlogin button a{
+    font-size: 16px;
+    color: var(--branco);
+    text-decoration: none;
+}
+
+.bloco-comlogin button:hover{
+    opacity: 1px;
+}
 /* --- FOOTER --- */
