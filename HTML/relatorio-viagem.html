@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../CSS/relatorio.css">
-    <link rel="icon" type="image/png" href="../Imagens/favicon.png">
-    <link rel="shortcut icon" type="image/x-icon" href="../Imagens/favicon.ico">
-    <link rel="apple-touch-icon" href="../Imagens/favicon.png">
+    <link rel="icon" type="image/png" href="../Imagens/Favicon - AJBorges branca.png">
+    <link rel="shortcut icon" type="image/png" href="../Imagens/Favicon - AJBorges branca.png">
+    <link rel="apple-touch-icon" href="../Imagens/Favicon - AJBorges branca.png">
     <title>Relatório de Viagem - AJBorges Transportes</title>
 </head>
 
@@ -16,7 +16,7 @@
         <div class="header-AJBorges">
             <div class="logotipo-AJBorges">
                 <a href="index.html" class="logo-link">
-                    <img src="../Imagens/logo-ajborges.png" alt="AJBorges Transportes">
+                    <img src="../Imagens/Favicon - AJBorges branca.png" alt="AJBorges Transportes">
                 </a>
             </div>
             <nav class="header-links">
@@ -30,7 +30,422 @@
     </header>
     
     <main>
+        <div class="container-relatorio">
+            <!-- Botão Voltar -->
+            <div class="navegacao-topo">
+                <a href="index.html" class="btn-voltar">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Voltar ao Portal
+                </a>
+            </div>
 
+            <div class="card-relatorio">
+                <!-- Cabeçalho do Relatório -->
+                <div class="card-cabecalho">
+                    <div class="cabecalho-info">
+                        <div class="badge-documento">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            <span>Documento Operacional</span>
+                        </div>
+                        <h1 class="titulo-relatorio">RELATÓRIO DE VIAGEM</h1>
+                        <p class="subtitulo-relatorio">Preencha com atenção os dados operacionais da viagem e o resumo financeiro dos fretes.</p>
+                    </div>
+                    <div class="legenda-obrigatorio">
+                        <span class="asterisco-tag">*</span> Campos obrigatórios
+                    </div>
+                </div>
+
+                <!-- Formulário -->
+                <form id="form-relatorio" class="form-relatorio" novalidate>
+                    <!-- BLOCO 1: Informações Gerais da Viagem -->
+                    <div class="secao-formulario">
+                        <div class="secao-titulo">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                            <h2>Informações Gerais da Viagem</h2>
+                        </div>
+
+                        <div class="grid-campos grid-2-col">
+                            <!-- Motorista -->
+                            <div class="campo-grupo">
+                                <label for="motorista">
+                                    MOTORISTA <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <input type="text" id="motorista" name="motorista" required placeholder="Ex: Jean Gomes" autocomplete="name">
+                                </div>
+                            </div>
+
+                            <!-- Placas -->
+                            <div class="campo-grupo">
+                                <label for="placas">
+                                    PLACAS <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                                        <line x1="2" y1="10" x2="22" y2="10"></line>
+                                    </svg>
+                                    <input type="text" id="placas" name="placas" required placeholder="Ex: MHU 9157" maxlength="8">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-campos grid-2-col">
+                            <!-- Data Saída -->
+                            <div class="campo-grupo">
+                                <label for="data-saida">
+                                    DATA SAÍDA <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    <input type="date" id="data-saida" name="data_saida" required>
+                                </div>
+                            </div>
+
+                            <!-- Data Chegada -->
+                            <div class="campo-grupo">
+                                <label for="data-chegada">
+                                    DATA CHEGADA <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    <input type="date" id="data-chegada" name="data_chegada" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-campos grid-3-col">
+                            <!-- KM / HM Saída -->
+                            <div class="campo-grupo">
+                                <label for="km-saida">
+                                    KM / HM SAÍDA <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <input type="text" inputmode="numeric" id="km-saida" name="km_saida" required placeholder="Ex: 1569447" autocomplete="off" onkeydown="if(event.key==='-'||event.key==='Minus'||event.key==='e'||event.key==='E'||event.key==='+'||event.code==='NumpadSubtract') event.preventDefault();" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                </div>
+                            </div>
+
+                            <!-- KM / HM Chegada -->
+                            <div class="campo-grupo">
+                                <label for="km-chegada">
+                                    KM / HM CHEGADA <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 8 14"></polyline>
+                                    </svg>
+                                    <input type="text" inputmode="numeric" id="km-chegada" name="km_chegada" required placeholder="Ex: 1573989" autocomplete="off" onkeydown="if(event.key==='-'||event.key==='Minus'||event.key==='e'||event.key==='E'||event.key==='+'||event.code==='NumpadSubtract') event.preventDefault();" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                </div>
+                            </div>
+
+                            <!-- KM / HM Total -->
+                            <div class="campo-grupo campo-calculado">
+                                <div class="label-com-tag">
+                                    <label for="km-total">
+                                        KM TOTAL <span class="asterisco">*</span>
+                                    </label>
+                                    <span class="tag-auto">Automático</span>
+                                </div>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="4" y1="19" x2="20" y2="19"></line>
+                                        <polyline points="4 15 10 9 14 13 20 7"></polyline>
+                                    </svg>
+                                    <input type="text" inputmode="numeric" id="km-total" name="km_total" required placeholder="Ex: 4542" autocomplete="off" onkeydown="if(event.key==='-'||event.key==='Minus'||event.key==='e'||event.key==='E'||event.key==='+'||event.code==='NumpadSubtract') event.preventDefault();" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-campos grid-2-col">
+                            <!-- Destino Inicial -->
+                            <div class="campo-grupo">
+                                <label for="destino-inicial">
+                                    DESTINO: INICIAL <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                    <input type="text" id="destino-inicial" name="destino_inicial" required placeholder="Ex: Marília - SP" autocomplete="off" onkeydown="if(/[0-9%$#@!&*()+=[\]{};:?^~|<>`\\\/_]/.test(event.key)) event.preventDefault();" oninput="this.value = this.value.replace(/[^A-Za-zÀ-ÿ\s\-]/g, '');">
+                                </div>
+                            </div>
+
+                            <!-- Destino Final -->
+                            <div class="campo-grupo">
+                                <label for="destino-final">
+                                    DESTINO: FINAL
+                                </label>
+                                <div class="input-wrapper">
+                                    <svg class="input-icone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                    <input type="text" id="destino-final" name="destino_final" placeholder="Ex: Santos - SP (opcional)" autocomplete="off" onkeydown="if(/[0-9%$#@!&*()+=[\]{};:?^~|<>`\\\/_]/.test(event.key)) event.preventDefault();" oninput="this.value = this.value.replace(/[^A-Za-zÀ-ÿ\s\-]/g, '');">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-campos grid-1-col">
+                            <!-- Valor Adiantamento -->
+                            <div class="campo-grupo">
+                                <label for="valor-adiantamento">
+                                    VALOR ADIANTAMENTO: R$ <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="valor-adiantamento" name="valor_adiantamento" required placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO INTERNO: Resumo Financeiro de Fretes -->
+                    <div class="subbloco-fretes">
+                        <div class="subbloco-cabecalho">
+                            <div class="subbloco-titulo">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                                <div>
+                                    <h3>Resumo Financeiro de Fretes</h3>
+                                    <p>Informe os valores apurados de frete de origem e retornos.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tabela-fretes-grid">
+                            <!-- Frete Origem -->
+                            <div class="frete-coluna frete-coluna-origem">
+                                <label for="frete-origem">
+                                    FRETE ORIGEM <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper input-moeda">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="frete-origem" name="frete_origem" required placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+
+                            <!-- Retorno (I) -->
+                            <div class="frete-coluna">
+                                <label for="retorno-1">
+                                    RETORNO (I) <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper input-moeda">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="retorno-1" name="retorno_1" required placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+
+                            <!-- Retorno (II) -->
+                            <div class="frete-coluna">
+                                <label for="retorno-2">
+                                    RETORNO (II)
+                                </label>
+                                <div class="input-wrapper input-moeda">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="retorno-2" name="retorno_2" placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+
+                            <!-- Retorno (III) -->
+                            <div class="frete-coluna">
+                                <label for="retorno-3">
+                                    RETORNO (III)
+                                </label>
+                                <div class="input-wrapper input-moeda">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="retorno-3" name="retorno_3" placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+
+                            <!-- Total Frete -->
+                            <div class="frete-coluna frete-destaque-total">
+                                <div class="label-com-tag">
+                                    <label for="total-frete">
+                                        TOTAL FRETE <span class="asterisco">*</span>
+                                    </label>
+                                    <span class="tag-auto">Soma</span>
+                                </div>
+                                <div class="input-wrapper input-moeda">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="total-frete" name="total_frete" required placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+
+                            <!-- Vr Comissão -->
+                            <div class="frete-coluna frete-destaque-comissao">
+                                <label for="vr-comissao">
+                                    VR COMISSÃO <span class="asterisco">*</span>
+                                </label>
+                                <div class="input-wrapper input-moeda">
+                                    <span class="input-prefixo">R$</span>
+                                    <input type="text" id="vr-comissao" name="vr_comissao" required placeholder="0,00" inputmode="numeric">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO DE SELEÇÃO: Tipo de Relatório -->
+                    <div class="bloco-selecao-relatorio">
+                        <div class="selecao-relatorio-header">
+                            <div class="selecao-icone-tag">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="9 11 12 14 22 4"></polyline>
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Selecione o Tipo de Relatório para Continuar</h3>
+                                <p>Escolha a modalidade de operação para abrir o formulário correspondente:</p>
+                            </div>
+                        </div>
+
+                        <div class="opcoes-relatorio-grid">
+                            <!-- Opção 1: Relatório de Viagem -->
+                            <button type="button" class="card-opcao-relatorio" id="btn-opcao-padrao" data-tipo="padrao">
+                                <div class="opcao-topo">
+                                    <div class="opcao-radio-circulo">
+                                        <div class="radio-ponto"></div>
+                                    </div>
+                                    <span class="opcao-badge-tag">Padrão</span>
+                                </div>
+                                <div class="opcao-conteudo">
+                                    <div class="opcao-icone">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="1" y="3" width="15" height="13"></rect>
+                                            <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+                                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                        </svg>
+                                    </div>
+                                    <div class="opcao-textos">
+                                        <h4 class="opcao-nome">Relatório de viagem</h4>
+                                        <p class="opcao-desc">Formulário operacional para viagens regulares da frota.</p>
+                                    </div>
+                                </div>
+                                <div class="opcao-rodape">
+                                    <span class="status-selecao">Clique para selecionar</span>
+                                </div>
+                            </button>
+
+                            <!-- Opção 2: Relatório de Viagem - ML -->
+                            <button type="button" class="card-opcao-relatorio" id="btn-opcao-ml" data-tipo="ml">
+                                <div class="opcao-topo">
+                                    <div class="opcao-radio-circulo">
+                                        <div class="radio-ponto"></div>
+                                    </div>
+                                    <span class="opcao-badge-tag badge-ml">Mercado Livre</span>
+                                </div>
+                                <div class="opcao-conteudo">
+                                    <div class="opcao-icone icone-ml">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="opcao-textos">
+                                        <h4 class="opcao-nome">Relatório de viagem - ML</h4>
+                                        <p class="opcao-desc">Formulário específico para operações dedicadas ML.</p>
+                                    </div>
+                                </div>
+                                <div class="opcao-rodape">
+                                    <span class="status-selecao">Clique para selecionar</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Containers dos formulários que abrem após a escolha -->
+                        <div class="containers-relatorios-especificos">
+                            <!-- Container 1: Relatório de Viagem -->
+                            <div id="secao-formulario-padrao" class="secao-relatorio-especifico oculto">
+                                <div class="painel-relatorio-selecionado">
+                                    <div class="painel-header-selecionado">
+                                        <div class="badge-ativo">Formulário Ativo</div>
+                                        <h3>Relatório de viagem</h3>
+                                    </div>
+                                    <div class="painel-conteudo-espera">
+                                        <div class="icone-espera">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                        </div>
+                                        <h4>Aguardando campos específicos do Relatório de viagem</h4>
+                                        <p>Esta seção está pronta para receber os campos operacionais adicionais deste formulário.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Container 2: Relatório de Viagem - ML -->
+                            <div id="secao-formulario-ml" class="secao-relatorio-especifico oculto">
+                                <div class="painel-relatorio-selecionado">
+                                    <div class="painel-header-selecionado">
+                                        <div class="badge-ativo badge-ml-ativo">Formulário Ativo</div>
+                                        <h3>Relatório de viagem - ML</h3>
+                                    </div>
+                                    <div class="painel-conteudo-espera">
+                                        <div class="icone-espera icone-ml-espera">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                        </div>
+                                        <h4>Aguardando campos específicos do Relatório de viagem - ML</h4>
+                                        <p>Esta seção está pronta para receber os campos operacionais adicionais deste formulário.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notificação Toast -->
+        <div id="toast-notificacao" class="toast" role="alert">
+            <span class="toast-icone"></span>
+            <span class="toast-mensagem"></span>
+        </div>
     </main>
 
    <footer>
@@ -168,6 +583,7 @@
             <p>&copy; 2026 AJBorges Transporte & Logística. Todos os direitos reservados.</p>
         </div>
     </footer>
+    <script src="../JavaScript/relatorio.js?v=2.1"></script>
 </body>
 
 </html>
