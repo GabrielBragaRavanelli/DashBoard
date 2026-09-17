@@ -8,7 +8,7 @@
 
 body {
     font-family: "Poppins", sans-serif;
-    background-color: #f5f7fa;
+    background-color: var(--branco);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -20,7 +20,7 @@ body {
     --cinza: #aeaeae;
     --azul-ajborges: #3d3d90;
     --azul-ajborges-escuro: #2b2b6d;
-    --verde-ajborges: #00a859;
+   
 }
 
 
@@ -332,7 +332,7 @@ footer {
     left: 0;
     width: 36px;
     height: 3px;
-    background-color: var(--verde-ajborges);
+    background-color: var(--branco);
     border-radius: 2px;
 }
 
