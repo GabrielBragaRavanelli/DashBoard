@@ -52,39 +52,61 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------
     // 2. Bloqueio de Hífen / Negativos no KM
     // ------------------------------------------
-    function aplicarBloqueioNegativoKm(input) {
+    // ------------------------------------------
+    // 2. Máscara de Milhar (Ponto) para KM e NF
+    // ------------------------------------------
+    function formatarMilhar(strOuNum) {
+        if (strOuNum === null || strOuNum === undefined || strOuNum === '') return '';
+        const digitos = strOuNum.toString().replace(/\D/g, '');
+        if (!digitos) return '';
+        return parseInt(digitos, 10).toLocaleString('pt-BR');
+    }
+
+    function parseMilhar(strOuNum) {
+        if (!strOuNum) return 0;
+        const digitos = strOuNum.toString().replace(/\D/g, '');
+        if (!digitos) return 0;
+        return parseInt(digitos, 10);
+    }
+
+    function aplicarMascaraMilhar(input, callback) {
         if (!input) return;
 
         input.addEventListener('keydown', (e) => {
-            // Proíbe hífen/menos (-), Expoente (e, E), mais (+) e tecla do teclado numérico
+            // Proíbe hífen/menos (-), Expoente (e, E), mais (+) e teclas impróprias
             if (e.key === '-' || e.key === 'Minus' || e.code === 'NumpadSubtract' || e.key === 'e' || e.key === 'E' || e.key === '+') {
                 e.preventDefault();
             }
         });
 
         input.addEventListener('input', (e) => {
-            // Garante estritamente apenas números positivos
-            const valorLimpo = e.target.value.replace(/[^0-9]/g, '');
-            if (e.target.value !== valorLimpo) {
-                e.target.value = valorLimpo;
+            const digitos = e.target.value.replace(/\D/g, '');
+            if (!digitos) {
+                e.target.value = '';
+            } else {
+                e.target.value = parseInt(digitos, 10).toLocaleString('pt-BR');
             }
-            calcularKmTotal();
+            if (callback) callback();
         });
 
         input.addEventListener('paste', (e) => {
             const pasteData = (e.clipboardData || window.clipboardData).getData('text');
-            if (pasteData && /[^0-9]/.test(pasteData)) {
+            if (pasteData) {
                 e.preventDefault();
-                const limpo = pasteData.replace(/[^0-9]/g, '');
-                document.execCommand('insertText', false, limpo);
-                calcularKmTotal();
+                const limpo = pasteData.replace(/\D/g, '');
+                if (limpo) {
+                    e.target.value = parseInt(limpo, 10).toLocaleString('pt-BR');
+                } else {
+                    e.target.value = '';
+                }
+                if (callback) callback();
             }
         });
     }
 
-    aplicarBloqueioNegativoKm(inputKmSaida);
-    aplicarBloqueioNegativoKm(inputKmChegada);
-    aplicarBloqueioNegativoKm(inputKmTotal);
+    // Aplica máscara de milhar aos campos de KM do cabeçalho
+    aplicarMascaraMilhar(inputKmSaida, () => calcularKmTotal());
+    aplicarMascaraMilhar(inputKmChegada, () => calcularKmTotal());
 
     // ------------------------------------------
     // 3. Validação de Destino (Proíbe Números e Caracteres Especiais)
@@ -93,22 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!input) return;
 
         input.addEventListener('keydown', (e) => {
-            // Permitir teclas de navegação e edição
             if (e.ctrlKey || e.altKey || e.metaKey || [
                 'Backspace', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete', 'Home', 'End'
             ].includes(e.key)) {
                 return;
             }
 
-            // Bloquear se for número (0-9) ou caractere especial proibido (ex: %$#@!* etc.)
-            // Permite apenas letras (com acentos), espaços e hífen
             if (/[0-9%$#@!&*()+=[\]{};:?^~|<>`\\\/_"]/.test(e.key) || /[^a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]/.test(e.key)) {
                 e.preventDefault();
             }
         });
 
         input.addEventListener('input', (e) => {
-            // Remove instantaneamente qualquer número ou caractere especial
             const valorLimpo = e.target.value.replace(/[^A-Za-zÀ-ÿ\s\-]/g, '');
             if (e.target.value !== valorLimpo) {
                 e.target.value = valorLimpo;
@@ -148,22 +166,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isNaN(kmSaida) && !isNaN(kmChegada)) {
             if (kmChegada >= kmSaida) {
                 const total = kmChegada - kmSaida;
-                inputKmTotal.value = total;
+                inputKmTotal.value = formatarMilhar(total);
             } else {
                 inputKmTotal.value = '';
             }
         } else {
             inputKmTotal.value = '';
         }
-    }
 
-    if (inputKmSaida && inputKmChegada) {
-        inputKmSaida.addEventListener('input', calcularKmTotal);
-        inputKmChegada.addEventListener('input', calcularKmTotal);
+        if (typeof calcularIndicadoresViagem === 'function') {
+            calcularIndicadoresViagem();
+        }
+        if (typeof calcularIndicadoresViagemMl === 'function') {
+            calcularIndicadoresViagemMl();
+        }
     }
 
     // ------------------------------------------
-    // 3. Formatação e Cálculo Monetário (R$)
+    // 5. Formatação e Cálculo Monetário (R$) e Litros
     // ------------------------------------------
     function parseMoeda(str) {
         if (!str) return 0;
@@ -172,40 +192,105 @@ document.addEventListener('DOMContentLoaded', () => {
         return parseFloat(apenasDigitos) / 100;
     }
 
+    // Formato com prefixo R$ (usado em Cards de Indicadores)
     function formatarMoeda(valor) {
         if (isNaN(valor) || valor === null) return 'R$ 0,00';
+        return 'R$ ' + formatarMoedaSemPrefixo(valor);
+    }
+
+    // Formato numérico puro '2.596,37' (usado nos inputs com span 'R$' externo para evitar sobreposição)
+    function formatarMoedaSemPrefixo(valor) {
+        if (isNaN(valor) || valor === null) return '0,00';
         return valor.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
     }
 
-    function aplicarMascaraMoeda(input) {
+    function aplicarMascaraMoeda(input, callback) {
         if (!input) return;
 
         input.addEventListener('input', (e) => {
             let digitos = e.target.value.replace(/\D/g, '');
             if (!digitos) {
                 e.target.value = '';
-                calcularTotalFrete();
+                if (callback) callback();
                 return;
             }
 
             const valorNumerico = parseFloat(digitos) / 100;
-            e.target.value = formatarMoeda(valorNumerico);
-            calcularTotalFrete();
+            e.target.value = formatarMoedaSemPrefixo(valorNumerico);
+            if (callback) callback();
         });
 
         input.addEventListener('blur', (e) => {
             if (e.target.value.trim() !== '') {
                 const valorNumerico = parseMoeda(e.target.value);
-                e.target.value = formatarMoeda(valorNumerico);
+                e.target.value = formatarMoedaSemPrefixo(valorNumerico);
+                if (callback) callback();
             }
         });
     }
 
-    // Aplica máscara nos campos monetários
-    const camposMoeda = [
+    function parseDecimal(str) {
+        if (!str) return 0;
+        const s = str.toString().trim().replace(/\./g, '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function formatarDecimal(num, casas = 2) {
+        if (isNaN(num) || num === null) return (0).toFixed(casas).replace('.', ',');
+        return num.toLocaleString('pt-BR', {
+            minimumFractionDigits: casas,
+            maximumFractionDigits: casas
+        });
+    }
+
+    // Formatação de Litros com 3 casas decimais (ex: 457,996)
+    function formatarLitros(num) {
+        if (isNaN(num) || num === null || num === undefined) return '0,000';
+        return num.toLocaleString('pt-BR', {
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3
+        });
+    }
+
+    function parseLitros(str) {
+        if (!str) return 0;
+        const s = str.toString().trim().replace(/\./g, '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function aplicarMascaraLitros(input, callback) {
+        if (!input) return;
+
+        input.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/[^0-9,\.]/g, '');
+            const partes = val.split(/[,.]/);
+            if (partes.length > 2) {
+                val = partes[0] + ',' + partes.slice(1).join('').substring(0, 3);
+            } else if (partes.length === 2) {
+                val = partes[0] + ',' + partes[1].substring(0, 3);
+            }
+            e.target.value = val;
+            if (callback) callback();
+        });
+
+        input.addEventListener('blur', (e) => {
+            if (e.target.value.trim() !== '') {
+                const num = parseLitros(e.target.value);
+                if (num > 0) {
+                    e.target.value = formatarLitros(num);
+                }
+                if (callback) callback();
+            }
+        });
+    }
+
+    // Aplica máscara nos campos monetários de frete e adiantamento
+    const camposMoedaTopo = [
         inputAdiantamento,
         inputFreteOrigem,
         inputRetorno1,
@@ -215,7 +300,15 @@ document.addEventListener('DOMContentLoaded', () => {
         inputVrComissao
     ];
 
-    camposMoeda.forEach(aplicarMascaraMoeda);
+    camposMoedaTopo.forEach(campo => {
+        aplicarMascaraMoeda(campo, () => {
+            calcularTotalFrete();
+            calcularIndicadoresViagem();
+            if (typeof calcularIndicadoresViagemMl === 'function') {
+                calcularIndicadoresViagemMl();
+            }
+        });
+    });
 
     // ------------------------------------------
     // 4. Cálculo Automático do Total de Fretes
@@ -231,14 +324,331 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = valOrigem + valRetorno1 + valRetorno2 + valRetorno3;
 
         if (total > 0) {
-            inputTotalFrete.value = formatarMoeda(total);
+            inputTotalFrete.value = formatarMoedaSemPrefixo(total);
         } else {
             inputTotalFrete.value = '';
         }
     }
 
     // ------------------------------------------
-    // 5. Exibição de Toast / Notificações
+    // 5. Cálculos da Tabela de Abastecimentos (10 Linhas)
+    // ------------------------------------------
+    const inputsValorAbast = [];
+    const inputsLitrosAbast = [];
+
+    for (let i = 1; i <= 10; i++) {
+        const inputNf = document.querySelector(`input[name="nf_${i}"]`);
+        const inputKm = document.querySelector(`input[name="km_${i}"]`);
+        const inputValor = document.querySelector(`input[name="valor_${i}"]`);
+        const inputLitros = document.querySelector(`input[name="litros_${i}"]`);
+
+        if (inputNf) {
+            aplicarMascaraMilhar(inputNf, salvarProgressoAutomatico);
+        }
+
+        if (inputKm) {
+            aplicarMascaraMilhar(inputKm, () => {
+                calcularIndicadoresViagem();
+                salvarProgressoAutomatico();
+            });
+        }
+
+        if (inputValor) {
+            inputsValorAbast.push(inputValor);
+            aplicarMascaraMoeda(inputValor, () => {
+                calcularTotaisAbastecimento();
+                calcularIndicadoresViagem();
+                salvarProgressoAutomatico();
+            });
+        }
+
+        if (inputLitros) {
+            inputsLitrosAbast.push(inputLitros);
+            aplicarMascaraLitros(inputLitros, () => {
+                calcularTotaisAbastecimento();
+                calcularIndicadoresViagem();
+                salvarProgressoAutomatico();
+            });
+        }
+    }
+
+    function calcularTotaisAbastecimento() {
+        let somaValor = 0;
+        let somaLitros = 0;
+
+        for (let i = 1; i <= 10; i++) {
+            const inputValor = document.querySelector(`input[name="valor_${i}"]`);
+            const inputLitros = document.querySelector(`input[name="litros_${i}"]`);
+
+            if (inputValor && inputValor.value) {
+                somaValor += parseMoeda(inputValor.value);
+            }
+            if (inputLitros && inputLitros.value) {
+                somaLitros += parseLitros(inputLitros.value);
+            }
+        }
+
+        const totalValorEl = document.getElementById('total-valor-combustivel');
+        const totalLitrosEl = document.getElementById('total-litros-combustivel');
+
+        if (totalValorEl) {
+            totalValorEl.value = formatarMoedaSemPrefixo(somaValor);
+        }
+        if (totalLitrosEl) {
+            totalLitrosEl.value = formatarLitros(somaLitros);
+        }
+
+        return { somaValor, somaLitros };
+    }
+
+    // ------------------------------------------
+    // 6. Cálculos de Pedágios (3 Linhas)
+    // ------------------------------------------
+    const inputsPedagio = [
+        document.getElementById('pedagio-1'),
+        document.getElementById('pedagio-2'),
+        document.getElementById('pedagio-3')
+    ];
+
+    inputsPedagio.forEach(input => {
+        if (input) {
+            aplicarMascaraMoeda(input, calcularIndicadoresViagem);
+        }
+    });
+
+    function calcularTotalPedagio() {
+        let total = 0;
+        inputsPedagio.forEach(input => {
+            if (input && input.value) {
+                total += parseMoeda(input.value);
+            }
+        });
+
+        const totalPedagioEl = document.getElementById('total-pedagio');
+        if (totalPedagioEl) {
+            totalPedagioEl.value = formatarDecimal(total, 2);
+        }
+        return total;
+    }
+
+    // ------------------------------------------
+    // 7. Cálculos de Outras Despesas (3 Linhas, Linha 1 Imposto Federal)
+    // ------------------------------------------
+    const inputsOutrasDespesasValor = [
+        document.getElementById('despesa-valor-1'),
+        document.getElementById('despesa-valor-2'),
+        document.getElementById('despesa-valor-3')
+    ];
+
+    inputsOutrasDespesasValor.forEach(input => {
+        if (input) {
+            aplicarMascaraMoeda(input, calcularIndicadoresViagem);
+        }
+    });
+
+    function calcularTotalOutrasDespesas() {
+        let total = 0;
+        inputsOutrasDespesasValor.forEach(input => {
+            if (input && input.value) {
+                total += parseMoeda(input.value);
+            }
+        });
+
+        const totalOutrasEl = document.getElementById('total-outras-despesas');
+        if (totalOutrasEl) {
+            totalOutrasEl.value = formatarDecimal(total, 2);
+        }
+        return total;
+    }
+
+    // ------------------------------------------
+    // 8. Indicadores Finais Consolidados da Viagem
+    // ------------------------------------------
+    function calcularIndicadoresViagem() {
+        const { somaValor: totalCombustivel, somaLitros: totalLitros } = calcularTotaisAbastecimento();
+        const totalPedagio = calcularTotalPedagio();
+        const totalOutras = calcularTotalOutrasDespesas();
+
+        // 1. Média de Combustível (KM Total / Total Litros)
+        let kmTotal = 0;
+        if (inputKmTotal && inputKmTotal.value) {
+            kmTotal = parseFloat(inputKmTotal.value.toString().replace(/\D/g, '')) || 0;
+        }
+
+        const cardMedia = document.getElementById('indicador-media-combustivel');
+        const baseKmEl = document.getElementById('calc-base-km');
+        const baseLitrosEl = document.getElementById('calc-base-litros');
+
+        if (baseKmEl) baseKmEl.textContent = kmTotal > 0 ? formatarMilhar(kmTotal) : '0';
+        if (baseLitrosEl) baseLitrosEl.textContent = totalLitros > 0 ? formatarLitros(totalLitros) : '0,000';
+
+        if (cardMedia) {
+            if (kmTotal > 0 && totalLitros > 0) {
+                const media = kmTotal / totalLitros;
+                cardMedia.innerHTML = `${formatarDecimal(media, 2)} <span class="indicador-unidade">km/l</span>`;
+            } else {
+                cardMedia.innerHTML = `0,00 <span class="indicador-unidade">km/l</span>`;
+            }
+        }
+
+        // 2. Despesa Total = Combustível + Pedágio + Outras Despesas
+        const despesaTotal = totalCombustivel + totalPedagio + totalOutras;
+        const cardDespesa = document.getElementById('indicador-despesa-total');
+        if (cardDespesa) {
+            cardDespesa.textContent = formatarMoeda(despesaTotal);
+        }
+
+        // 3. Resultado da Viagem = Total Frete - Despesa Total
+        let totalFrete = 0;
+        if (inputTotalFrete && inputTotalFrete.value) {
+            totalFrete = parseMoeda(inputTotalFrete.value);
+        }
+        const resultadoViagem = totalFrete - despesaTotal;
+        const cardResultado = document.getElementById('indicador-resultado-viagem');
+        if (cardResultado) {
+            cardResultado.textContent = formatarMoeda(resultadoViagem);
+            if (resultadoViagem < 0) {
+                cardResultado.style.color = '#e11d48';
+            } else {
+                cardResultado.style.color = '#047857';
+            }
+        }
+
+        // 4. Saldo de Comissão = VR Comissão - Adiantamento
+        let vrComissao = 0;
+        if (inputVrComissao && inputVrComissao.value) {
+            vrComissao = parseMoeda(inputVrComissao.value);
+        }
+        let adiantamento = 0;
+        if (inputAdiantamento && inputAdiantamento.value) {
+            adiantamento = parseMoeda(inputAdiantamento.value);
+        }
+
+        // Saldo líquido a acertar da comissão
+        const saldoComissao = vrComissao > 0 ? (vrComissao - adiantamento) : 0;
+        const cardComissao = document.getElementById('indicador-saldo-comissao');
+        if (cardComissao) {
+            cardComissao.textContent = formatarMoeda(saldoComissao > 0 ? saldoComissao : vrComissao);
+        }
+    }
+
+    // ------------------------------------------
+    // 9. Upload de Arquivos / Comprovantes
+    // ------------------------------------------
+    const dropzoneBox = document.getElementById('dropzone-comprovantes');
+    const inputFileDespesas = document.getElementById('input-arquivos-despesas');
+    const listaAnexosPreview = document.getElementById('lista-anexos-preview');
+    const contadorAnexos = document.getElementById('contador-anexos');
+    let arquivosComprovantes = [];
+
+    function formatarTamanhoArquivo(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const tamanhos = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + tamanhos[i];
+    }
+
+    function renderizarListaAnexos() {
+        if (!listaAnexosPreview) return;
+        listaAnexosPreview.innerHTML = '';
+
+        arquivosComprovantes.forEach((arq, index) => {
+            const item = document.createElement('div');
+            item.className = 'item-anexo-card';
+            const ehPdf = arq.name.toLowerCase().endsWith('.pdf');
+            const iconeSvg = ehPdf ?
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>` :
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+
+            item.innerHTML = `
+                <div class="item-anexo-info">
+                    ${iconeSvg}
+                    <div class="item-anexo-detalhes">
+                        <div class="item-anexo-nome" title="${arq.name}">${arq.name}</div>
+                        <div class="item-anexo-tamanho">${formatarTamanhoArquivo(arq.size)}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-remover-anexo" data-index="${index}" title="Remover anexo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            `;
+            listaAnexosPreview.appendChild(item);
+        });
+
+        if (contadorAnexos) {
+            contadorAnexos.textContent = `${arquivosComprovantes.length} arquivo(s)`;
+        }
+
+        listaAnexosPreview.querySelectorAll('.btn-remover-anexo').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                arquivosComprovantes.splice(idx, 1);
+                renderizarListaAnexos();
+                salvarProgressoAutomatico();
+            });
+        });
+    }
+
+    function adicionarArquivos(novosArquivos) {
+        let adicionados = 0;
+        for (let i = 0; i < novosArquivos.length; i++) {
+            const file = novosArquivos[i];
+            if (file.size > 15 * 1024 * 1024) {
+                exibirToast(`Arquivo "${file.name}" excede 15MB.`, 'erro');
+                continue;
+            }
+            arquivosComprovantes.push({
+                name: file.name,
+                size: file.size,
+                type: file.type
+            });
+            adicionados++;
+        }
+
+        if (adicionados > 0) {
+            renderizarListaAnexos();
+            salvarProgressoAutomatico();
+            exibirToast(`${adicionados} comprovante(s) anexado(s) com sucesso.`, 'sucesso');
+        }
+    }
+
+    if (dropzoneBox && inputFileDespesas) {
+        dropzoneBox.addEventListener('click', () => inputFileDespesas.click());
+
+        inputFileDespesas.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                adicionarArquivos(e.target.files);
+                e.target.value = '';
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzoneBox.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzoneBox.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzoneBox.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzoneBox.classList.remove('dragover');
+            });
+        });
+
+        dropzoneBox.addEventListener('drop', (e) => {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                adicionarArquivos(e.dataTransfer.files);
+            }
+        });
+    }
+
+    // ------------------------------------------
+    // 10. Exibição de Toast / Notificações
     // ------------------------------------------
     function exibirToast(mensagem, tipo = 'sucesso') {
         if (!toast) return;
@@ -254,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------
-    // 6. Alternância do Tipo de Relatório
+    // 11. Alternância do Tipo de Relatório
     // ------------------------------------------
     const STORAGE_TIPO_KEY = 'ajborges_tipo_relatorio_escolhido';
 
@@ -272,6 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dispararToast) {
                 exibirToast('Opção selecionada: Relatório de viagem', 'info');
             }
+            calcularIndicadoresViagem();
         } else if (tipo === 'ml') {
             if (btnOpcaoMl) btnOpcaoMl.classList.add('opcao-selecionada');
             if (btnOpcaoPadrao) btnOpcaoPadrao.classList.remove('opcao-selecionada');
@@ -284,6 +695,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (dispararToast) {
                 exibirToast('Opção selecionada: Relatório de viagem - ML', 'info');
+            }
+            if (typeof calcularIndicadoresViagemMl === 'function') {
+                calcularIndicadoresViagemMl();
             }
         }
 
@@ -299,11 +713,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------
-    // 7. Salvar e Carregar Dados em Andamento
+    // 12. Salvar e Carregar Dados em Andamento (LocalStorage)
     // ------------------------------------------
     const STORAGE_KEY = 'ajborges_relatorio_viagem_rascunho';
 
     function salvarProgressoAutomatico() {
+        const abastecimentos = [];
+        for (let i = 1; i <= 10; i++) {
+            const posto = document.querySelector(`input[name="posto_${i}"]`);
+            const nf = document.querySelector(`input[name="nf_${i}"]`);
+            const km = document.querySelector(`input[name="km_${i}"]`);
+            const valor = document.querySelector(`input[name="valor_${i}"]`);
+            const litros = document.querySelector(`input[name="litros_${i}"]`);
+
+            abastecimentos.push({
+                posto: posto ? posto.value : '',
+                nf: nf ? nf.value : '',
+                km: km ? km.value : '',
+                valor: valor ? valor.value : '',
+                litros: litros ? litros.value : ''
+            });
+        }
+
+        const pedagios = [
+            document.getElementById('pedagio-1') ? document.getElementById('pedagio-1').value : '',
+            document.getElementById('pedagio-2') ? document.getElementById('pedagio-2').value : '',
+            document.getElementById('pedagio-3') ? document.getElementById('pedagio-3').value : ''
+        ];
+
+        const outrasDespesas = [
+            {
+                desc: 'Imposto Federal',
+                valor: document.getElementById('despesa-valor-1') ? document.getElementById('despesa-valor-1').value : ''
+            },
+            {
+                desc: document.getElementById('despesa-desc-2') ? document.getElementById('despesa-desc-2').value : '',
+                valor: document.getElementById('despesa-valor-2') ? document.getElementById('despesa-valor-2').value : ''
+            },
+            {
+                desc: document.getElementById('despesa-desc-3') ? document.getElementById('despesa-desc-3').value : '',
+                valor: document.getElementById('despesa-valor-3') ? document.getElementById('despesa-valor-3').value : ''
+            }
+        ];
+
         const dados = {
             motorista: inputMotorista ? inputMotorista.value : '',
             placas: inputPlacas ? inputPlacas.value : '',
@@ -320,25 +772,15 @@ document.addEventListener('DOMContentLoaded', () => {
             retorno2: inputRetorno2 ? inputRetorno2.value : '',
             retorno3: inputRetorno3 ? inputRetorno3.value : '',
             totalFrete: inputTotalFrete ? inputTotalFrete.value : '',
-            vrComissao: inputVrComissao ? inputVrComissao.value : ''
+            vrComissao: inputVrComissao ? inputVrComissao.value : '',
+            abastecimentos,
+            pedagios,
+            outrasDespesas,
+            anexos: arquivosComprovantes
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
     }
-
-    // Salvar progresso ao digitar em qualquer campo
-    const todosCampos = [
-        inputMotorista, inputPlacas, inputDataSaida, inputDataChegada,
-        inputKmSaida, inputKmChegada, inputKmTotal, inputDestinoInicial,
-        inputDestinoFinal, inputAdiantamento, inputFreteOrigem,
-        inputRetorno1, inputRetorno2, inputRetorno3, inputTotalFrete, inputVrComissao
-    ];
-
-    todosCampos.forEach(campo => {
-        if (campo) {
-            campo.addEventListener('change', salvarProgressoAutomatico);
-        }
-    });
 
     function carregarProgresso() {
         try {
@@ -364,8 +806,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (inputTotalFrete && dados.totalFrete) inputTotalFrete.value = dados.totalFrete;
                     if (inputVrComissao && dados.vrComissao) inputVrComissao.value = dados.vrComissao;
 
+                    // Restaurar abastecimentos
+                    if (Array.isArray(dados.abastecimentos)) {
+                        dados.abastecimentos.forEach((ab, idx) => {
+                            const i = idx + 1;
+                            const posto = document.querySelector(`input[name="posto_${i}"]`);
+                            const nf = document.querySelector(`input[name="nf_${i}"]`);
+                            const km = document.querySelector(`input[name="km_${i}"]`);
+                            const valor = document.querySelector(`input[name="valor_${i}"]`);
+                            const litros = document.querySelector(`input[name="litros_${i}"]`);
+
+                            if (posto && ab.posto) posto.value = ab.posto;
+                            if (nf && ab.nf) nf.value = ab.nf;
+                            if (km && ab.km) km.value = ab.km;
+                            if (valor && ab.valor) valor.value = ab.valor;
+                            if (litros && ab.litros) litros.value = ab.litros;
+                        });
+                    }
+
+                    // Restaurar pedágios
+                    if (Array.isArray(dados.pedagios)) {
+                        dados.pedagios.forEach((ped, idx) => {
+                            const inputPed = document.getElementById(`pedagio-${idx + 1}`);
+                            if (inputPed && ped) inputPed.value = ped;
+                        });
+                    }
+
+                    // Restaurar outras despesas
+                    if (Array.isArray(dados.outrasDespesas)) {
+                        if (dados.outrasDespesas[0] && dados.outrasDespesas[0].valor) {
+                            const val1 = document.getElementById('despesa-valor-1');
+                            if (val1) val1.value = dados.outrasDespesas[0].valor;
+                        }
+                        if (dados.outrasDespesas[1]) {
+                            const desc2 = document.getElementById('despesa-desc-2');
+                            const val2 = document.getElementById('despesa-valor-2');
+                            if (desc2 && dados.outrasDespesas[1].desc) desc2.value = dados.outrasDespesas[1].desc;
+                            if (val2 && dados.outrasDespesas[1].valor) val2.value = dados.outrasDespesas[1].valor;
+                        }
+                        if (dados.outrasDespesas[2]) {
+                            const desc3 = document.getElementById('despesa-desc-3');
+                            const val3 = document.getElementById('despesa-valor-3');
+                            if (desc3 && dados.outrasDespesas[2].desc) desc3.value = dados.outrasDespesas[2].desc;
+                            if (val3 && dados.outrasDespesas[2].valor) val3.value = dados.outrasDespesas[2].valor;
+                        }
+                    }
+
+                    // Restaurar anexos salvos
+                    if (Array.isArray(dados.anexos)) {
+                        arquivosComprovantes = dados.anexos;
+                        renderizarListaAnexos();
+                    }
+
                     calcularKmTotal();
                     calcularTotalFrete();
+                    calcularIndicadoresViagem();
                 }
             }
 
@@ -379,5 +874,985 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Ouvir alterações em todos os campos do formulário para salvar automaticamente
+    if (form) {
+        form.addEventListener('change', salvarProgressoAutomatico);
+        form.addEventListener('input', () => {
+            calcularIndicadoresViagem();
+        });
+    }
+
+    // ------------------------------------------
+    // 13. Ações do Formulário (Salvar e Finalizar)
+    // ------------------------------------------
+    const btnSalvarRascunhoCompleto = document.getElementById('btn-salvar-rascunho-completo');
+    if (btnSalvarRascunhoCompleto) {
+        btnSalvarRascunhoCompleto.addEventListener('click', () => {
+            salvarProgressoAutomatico();
+            exibirToast('Rascunho do relatório salvo com sucesso!', 'sucesso');
+        });
+    }
+
+    const btnFinalizarRelatorio = document.getElementById('btn-finalizar-relatorio');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Validação dos campos essenciais
+            const motoristaPreenchido = inputMotorista && inputMotorista.value.trim() !== '';
+            const placasPreenchida = inputPlacas && inputPlacas.value.trim() !== '';
+            const impostoFederalValor = document.getElementById('despesa-valor-1');
+            const impostoPreenchido = impostoFederalValor && impostoFederalValor.value.trim() !== '';
+
+            if (!motoristaPreenchido || !placasPreenchida) {
+                exibirToast('Preencha os dados do motorista e placa para finalizar.', 'erro');
+                if (!motoristaPreenchido && inputMotorista) inputMotorista.focus();
+                else if (!placasPreenchida && inputPlacas) inputPlacas.focus();
+                return;
+            }
+
+            if (!impostoPreenchido) {
+                exibirToast('O valor do Imposto Federal é obrigatório.', 'erro');
+                if (impostoFederalValor) impostoFederalValor.focus();
+                return;
+            }
+
+            salvarProgressoAutomatico();
+            exibirToast('Relatório de Viagem finalizado e emitido com sucesso!', 'sucesso');
+        });
+    }
+
+    // ------------------------------------------
+    // 14. Limpeza de Linhas e Seções (Lixeiras)
+    // ------------------------------------------
+    const btnLixeiraAbast = document.getElementById('btn-lixeira-abastecimento');
+    const popoverLimparAbast = document.getElementById('popover-limpar-abast');
+    const fecharPopoverAbast = document.getElementById('fechar-popover-abast');
+    const btnLimparAbastPreenchidas = document.getElementById('btn-limpar-abast-preenchidas');
+    const btnLimparAbastTodas = document.getElementById('btn-limpar-abast-todas');
+
+    const btnLixeiraDespesas = document.getElementById('btn-lixeira-despesas');
+    const popoverLimparDespesas = document.getElementById('popover-limpar-despesas');
+    const fecharPopoverDespesas = document.getElementById('fechar-popover-despesas');
+    const btnLimparApenasPedagios = document.getElementById('btn-limpar-apenas-pedagios');
+    const btnLimparApenasOutrasDespesas = document.getElementById('btn-limpar-apenas-outras-despesas');
+    const btnLimparTodasDespesasPedagios = document.getElementById('btn-limpar-todas-despesas-pedagios');
+
+    // Abre/fecha popover de abastecimento
+    if (btnLixeiraAbast && popoverLimparAbast) {
+        btnLixeiraAbast.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popoverLimparDespesas) popoverLimparDespesas.classList.add('oculto');
+            popoverLimparAbast.classList.toggle('oculto');
+        });
+    }
+
+    if (fecharPopoverAbast && popoverLimparAbast) {
+        fecharPopoverAbast.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popoverLimparAbast.classList.add('oculto');
+        });
+    }
+
+    // Abre/fecha popover de despesas e pedágios
+    if (btnLixeiraDespesas && popoverLimparDespesas) {
+        btnLixeiraDespesas.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popoverLimparAbast) popoverLimparAbast.classList.add('oculto');
+            popoverLimparDespesas.classList.toggle('oculto');
+        });
+    }
+
+    if (fecharPopoverDespesas && popoverLimparDespesas) {
+        fecharPopoverDespesas.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popoverLimparDespesas.classList.add('oculto');
+        });
+    }
+
+    // Fechar popover ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (popoverLimparAbast && !popoverLimparAbast.contains(e.target) && e.target !== btnLixeiraAbast && !btnLixeiraAbast.contains(e.target)) {
+            popoverLimparAbast.classList.add('oculto');
+        }
+        if (popoverLimparDespesas && !popoverLimparDespesas.contains(e.target) && e.target !== btnLixeiraDespesas && !btnLixeiraDespesas.contains(e.target)) {
+            popoverLimparDespesas.classList.add('oculto');
+        }
+    });
+
+    // Ação: Limpar apenas linhas preenchidas de abastecimento
+    if (btnLimparAbastPreenchidas) {
+        btnLimparAbastPreenchidas.addEventListener('click', () => {
+            let linhasLimpas = 0;
+            for (let i = 1; i <= 10; i++) {
+                const posto = document.querySelector(`input[name="posto_${i}"]`);
+                const nf = document.querySelector(`input[name="nf_${i}"]`);
+                const km = document.querySelector(`input[name="km_${i}"]`);
+                const valor = document.querySelector(`input[name="valor_${i}"]`);
+                const litros = document.querySelector(`input[name="litros_${i}"]`);
+
+                const temDados = (posto && posto.value.trim() !== '') ||
+                    (nf && nf.value.trim() !== '') ||
+                    (km && km.value.trim() !== '') ||
+                    (valor && valor.value.trim() !== '') ||
+                    (litros && litros.value.trim() !== '');
+
+                if (temDados) {
+                    if (posto) posto.value = '';
+                    if (nf) nf.value = '';
+                    if (km) km.value = '';
+                    if (valor) valor.value = '';
+                    if (litros) litros.value = '';
+                    linhasLimpas++;
+                }
+            }
+
+            if (popoverLimparAbast) popoverLimparAbast.classList.add('oculto');
+            calcularIndicadoresViagem();
+            salvarProgressoAutomatico();
+
+            if (linhasLimpas > 0) {
+                exibirToast(`${linhasLimpas} linha(s) de abastecimento limpa(s)!`, 'sucesso');
+            } else {
+                exibirToast('Nenhuma linha preenchida para limpar.', 'info');
+            }
+        });
+    }
+
+    // Ação: Limpar todas as 10 linhas de abastecimento
+    if (btnLimparAbastTodas) {
+        btnLimparAbastTodas.addEventListener('click', () => {
+            for (let i = 1; i <= 10; i++) {
+                const posto = document.querySelector(`input[name="posto_${i}"]`);
+                const nf = document.querySelector(`input[name="nf_${i}"]`);
+                const km = document.querySelector(`input[name="km_${i}"]`);
+                const valor = document.querySelector(`input[name="valor_${i}"]`);
+                const litros = document.querySelector(`input[name="litros_${i}"]`);
+
+                if (posto) posto.value = '';
+                if (nf) nf.value = '';
+                if (km) km.value = '';
+                if (valor) valor.value = '';
+                if (litros) litros.value = '';
+            }
+
+            if (popoverLimparAbast) popoverLimparAbast.classList.add('oculto');
+            calcularIndicadoresViagem();
+            salvarProgressoAutomatico();
+            exibirToast('Todas as 10 linhas de abastecimento foram limpas!', 'sucesso');
+        });
+    }
+
+    // Ação: Limpar apenas pedágios
+    if (btnLimparApenasPedagios) {
+        btnLimparApenasPedagios.addEventListener('click', () => {
+            inputsPedagio.forEach(input => {
+                if (input) input.value = '';
+            });
+
+            if (popoverLimparDespesas) popoverLimparDespesas.classList.add('oculto');
+            calcularIndicadoresViagem();
+            salvarProgressoAutomatico();
+            exibirToast('Campos de pedágio limpos!', 'sucesso');
+        });
+    }
+
+    // Ação: Limpar apenas outras despesas
+    if (btnLimparApenasOutrasDespesas) {
+        btnLimparApenasOutrasDespesas.addEventListener('click', () => {
+            const val1 = document.getElementById('despesa-valor-1');
+            const desc2 = document.getElementById('despesa-desc-2');
+            const val2 = document.getElementById('despesa-valor-2');
+            const desc3 = document.getElementById('despesa-desc-3');
+            const val3 = document.getElementById('despesa-valor-3');
+
+            if (val1) val1.value = '';
+            if (desc2) desc2.value = '';
+            if (val2) val2.value = '';
+            if (desc3) desc3.value = '';
+            if (val3) val3.value = '';
+
+            if (popoverLimparDespesas) popoverLimparDespesas.classList.add('oculto');
+            calcularIndicadoresViagem();
+            salvarProgressoAutomatico();
+            exibirToast('Campos de outras despesas limpos!', 'sucesso');
+        });
+    }
+
+    // Ação: Limpar todas as despesas e pedágios
+    if (btnLimparTodasDespesasPedagios) {
+        btnLimparTodasDespesasPedagios.addEventListener('click', () => {
+            inputsPedagio.forEach(input => {
+                if (input) input.value = '';
+            });
+
+            const val1 = document.getElementById('despesa-valor-1');
+            const desc2 = document.getElementById('despesa-desc-2');
+            const val2 = document.getElementById('despesa-valor-2');
+            const desc3 = document.getElementById('despesa-desc-3');
+            const val3 = document.getElementById('despesa-valor-3');
+
+            if (val1) val1.value = '';
+            if (desc2) desc2.value = '';
+            if (val2) val2.value = '';
+            if (desc3) desc3.value = '';
+            if (val3) val3.value = '';
+
+            if (popoverLimparDespesas) popoverLimparDespesas.classList.add('oculto');
+            calcularIndicadoresViagem();
+            salvarProgressoAutomatico();
+            exibirToast('Pedágios e outras despesas foram totalmente limpos!', 'sucesso');
+        });
+    }
+
+    // ==========================================
+    // 15. MÓDULO OPERACIONAL: RELATÓRIO DE VIAGEM - ML
+    // ==========================================
+    const STORAGE_ML_KEY = 'ajborges_relatorio_viagem_ml_draft';
+
+    // 15.1. Relação de Fretes ML (8 Linhas)
+    const inputsValorFreteMl = [];
+    const inputTotalRelacaoFrete = document.getElementById('ml-total-relacao-frete');
+
+    for (let i = 1; i <= 8; i++) {
+        const inputValFrete = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+        const inputDataFrete = document.querySelector(`input[name="data_frete_ml_${i}"]`);
+        const inputOrigemFrete = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
+        const inputDestinoFrete = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
+
+        if (inputValFrete) {
+            inputsValorFreteMl.push(inputValFrete);
+            aplicarMascaraMoeda(inputValFrete, () => {
+                calcularTotaisFreteMl();
+                calcularIndicadoresViagemMl();
+                salvarProgressoMl();
+            });
+        }
+
+        if (inputDataFrete) {
+            inputDataFrete.addEventListener('input', salvarProgressoMl);
+        }
+        if (inputOrigemFrete) {
+            inputOrigemFrete.addEventListener('input', salvarProgressoMl);
+        }
+        if (inputDestinoFrete) {
+            inputDestinoFrete.addEventListener('input', salvarProgressoMl);
+        }
+    }
+
+    function calcularTotaisFreteMl() {
+        let soma = 0;
+        inputsValorFreteMl.forEach(input => {
+            soma += parseMoeda(input.value);
+        });
+
+        if (inputTotalRelacaoFrete) {
+            inputTotalRelacaoFrete.value = formatarMoedaSemPrefixo(soma);
+        }
+
+        // Sincronizar com o total geral de frete se o campo de topo não estiver preenchido com retornos avulsos
+        if (soma > 0 && inputTotalFrete) {
+            const fretesTopo = parseMoeda(inputFreteOrigem ? inputFreteOrigem.value : '') +
+                parseMoeda(inputRetorno1 ? inputRetorno1.value : '') +
+                parseMoeda(inputRetorno2 ? inputRetorno2.value : '') +
+                parseMoeda(inputRetorno3 ? inputRetorno3.value : '');
+            if (fretesTopo === 0) {
+                inputTotalFrete.value = formatarMoedaSemPrefixo(soma);
+            }
+        }
+
+        return soma;
+    }
+
+    // 15.2. Abastecimento ML (10 Linhas - Sem Média)
+    const inputsValorAbastMl = [];
+    const inputsLitrosAbastMl = [];
+    const inputTotalValorCombustivelMl = document.getElementById('ml-total-valor-combustivel');
+    const inputTotalLitrosCombustivelMl = document.getElementById('ml-total-litros-combustivel');
+
+    for (let i = 1; i <= 10; i++) {
+        const inputPosto = document.querySelector(`input[name="posto_ml_${i}"]`);
+        const inputNf = document.querySelector(`input[name="nf_ml_${i}"]`);
+        const inputKm = document.querySelector(`input[name="km_ml_${i}"]`);
+        const inputValor = document.querySelector(`input[name="valor_ml_${i}"]`);
+        const inputLitros = document.querySelector(`input[name="litros_ml_${i}"]`);
+
+        if (inputPosto) inputPosto.addEventListener('input', salvarProgressoMl);
+
+        if (inputNf) {
+            aplicarMascaraMilhar(inputNf, salvarProgressoMl);
+        }
+
+        if (inputKm) {
+            aplicarMascaraMilhar(inputKm, () => {
+                calcularIndicadoresViagemMl();
+                salvarProgressoMl();
+            });
+        }
+
+        if (inputValor) {
+            inputsValorAbastMl.push(inputValor);
+            aplicarMascaraMoeda(inputValor, () => {
+                calcularTotaisAbastecimentoMl();
+                calcularIndicadoresViagemMl();
+                salvarProgressoMl();
+            });
+        }
+
+        if (inputLitros) {
+            inputsLitrosAbastMl.push(inputLitros);
+            aplicarMascaraLitros(inputLitros, () => {
+                calcularTotaisAbastecimentoMl();
+                calcularIndicadoresViagemMl();
+                salvarProgressoMl();
+            });
+        }
+    }
+
+    function calcularTotaisAbastecimentoMl() {
+        let somaValor = 0;
+        let somaLitros = 0;
+
+        inputsValorAbastMl.forEach(input => {
+            somaValor += parseMoeda(input.value);
+        });
+
+        inputsLitrosAbastMl.forEach(input => {
+            somaLitros += parseLitros(input.value);
+        });
+
+        if (inputTotalValorCombustivelMl) {
+            inputTotalValorCombustivelMl.value = formatarMoedaSemPrefixo(somaValor);
+        }
+
+        if (inputTotalLitrosCombustivelMl) {
+            inputTotalLitrosCombustivelMl.value = formatarLitros(somaLitros);
+        }
+
+        return { valor: somaValor, litros: somaLitros };
+    }
+
+    // 15.3. Imposto Federal, Pedágio e Outras Despesas ML (Sem Arla)
+    const inputMlImpFederal = document.getElementById('ml-imp-federal-valor');
+    const inputMlImpAdic = document.getElementById('ml-imp-adic-valor');
+    const inputMlPedagio1 = document.getElementById('ml-pedagio-valor-1');
+    const inputMlPedagio2 = document.getElementById('ml-pedagio-valor-2');
+    const inputMlPedagio3 = document.getElementById('ml-pedagio-valor-3');
+    const inputTotalImpostoPedagio = document.getElementById('ml-total-imposto-pedagio');
+
+    const inputsImpostoPedagioMl = [
+        inputMlImpFederal,
+        inputMlImpAdic,
+        inputMlPedagio1,
+        inputMlPedagio2,
+        inputMlPedagio3
+    ];
+
+    inputsImpostoPedagioMl.forEach(input => {
+        if (input) {
+            aplicarMascaraMoeda(input, () => {
+                calcularTotaisDespesasMl();
+                calcularIndicadoresViagemMl();
+                salvarProgressoMl();
+            });
+        }
+    });
+
+    // Outras Despesas ML
+    const inputsValorOutrasMl = [];
+    const inputTotalOutrasDespesas = document.getElementById('ml-total-outras-despesas');
+
+    for (let i = 1; i <= 5; i++) {
+        const descOutra = document.querySelector(`input[name="ml_outra_desc_${i}"]`);
+        const valOutra = document.querySelector(`input[name="ml_outra_valor_${i}"]`);
+
+        if (descOutra) {
+            descOutra.addEventListener('input', salvarProgressoMl);
+        }
+
+        if (valOutra) {
+            inputsValorOutrasMl.push(valOutra);
+            aplicarMascaraMoeda(valOutra, () => {
+                calcularTotaisDespesasMl();
+                calcularIndicadoresViagemMl();
+                salvarProgressoMl();
+            });
+        }
+    }
+
+    function calcularTotaisDespesasMl() {
+        // Total Imposto e Pedágio
+        let totalImpPed = 0;
+        inputsImpostoPedagioMl.forEach(input => {
+            if (input) totalImpPed += parseMoeda(input.value);
+        });
+        if (inputTotalImpostoPedagio) {
+            inputTotalImpostoPedagio.value = formatarMoedaSemPrefixo(totalImpPed);
+        }
+
+        // Total Outras Despesas
+        let totalOutras = 0;
+        inputsValorOutrasMl.forEach(input => {
+            totalOutras += parseMoeda(input.value);
+        });
+        if (inputTotalOutrasDespesas) {
+            inputTotalOutrasDespesas.value = formatarMoedaSemPrefixo(totalOutras);
+        }
+
+        return {
+            impostoPedagio: totalImpPed,
+            outras: totalOutras,
+            totalGeralDespesas: totalImpPed + totalOutras
+        };
+    }
+
+    // 15.4. Cards de Indicadores da Viagem ML
+    const mlIndicadorMedia = document.getElementById('ml-indicador-media-combustivel');
+    const mlCalcBaseKm = document.getElementById('ml-calc-base-km');
+    const mlCalcBaseLitros = document.getElementById('ml-calc-base-litros');
+    const mlIndicadorDespesa = document.getElementById('ml-indicador-despesa-total');
+    const mlIndicadorResultado = document.getElementById('ml-indicador-resultado-viagem');
+    const mlIndicadorSaldoComissao = document.getElementById('ml-indicador-saldo-comissao');
+
+    function calcularIndicadoresViagemMl() {
+        const kmTotalNum = parseMilhar(inputKmTotal ? inputKmTotal.value : 0);
+        const totaisCombustivel = calcularTotaisAbastecimentoMl();
+        const totaisDespesas = calcularTotaisDespesasMl();
+        const totalFreteRelacao = calcularTotaisFreteMl();
+
+        // 1. Média de Combustível ML
+        if (mlIndicadorMedia) {
+            if (totaisCombustivel.litros > 0 && kmTotalNum > 0) {
+                const mediaGeral = kmTotalNum / totaisCombustivel.litros;
+                mlIndicadorMedia.innerHTML = `${formatarDecimal(mediaGeral, 2)} <span class="indicador-unidade">km/l</span>`;
+            } else {
+                mlIndicadorMedia.innerHTML = `0,00 <span class="indicador-unidade">km/l</span>`;
+            }
+        }
+        if (mlCalcBaseKm) mlCalcBaseKm.textContent = kmTotalNum > 0 ? formatarMilhar(kmTotalNum) : '0';
+        if (mlCalcBaseLitros) mlCalcBaseLitros.textContent = formatarLitros(totaisCombustivel.litros);
+
+        // 2. Despesa Total ML = Combustível + Impostos/Pedágios + Outras Despesas + Vr Comissão
+        const vrComissaoNum = parseMoeda(inputVrComissao ? inputVrComissao.value : '');
+
+        const despesaTotalCalculada = totaisCombustivel.valor +
+            totaisDespesas.totalGeralDespesas +
+            vrComissaoNum;
+
+        if (mlIndicadorDespesa) {
+            mlIndicadorDespesa.textContent = formatarMoeda(despesaTotalCalculada);
+        }
+
+        // 3. Resultado da Viagem ML = Total Frete - Despesa Total
+        let totalFreteFinal = parseMoeda(inputTotalFrete ? inputTotalFrete.value : '');
+        if (totalFreteFinal === 0 && totalFreteRelacao > 0) {
+            totalFreteFinal = totalFreteRelacao;
+        }
+
+        const resultadoViagemCalculado = totalFreteFinal - despesaTotalCalculada;
+        if (mlIndicadorResultado) {
+            mlIndicadorResultado.textContent = formatarMoeda(resultadoViagemCalculado);
+            if (resultadoViagemCalculado >= 0) {
+                mlIndicadorResultado.style.color = '#065f46';
+            } else {
+                mlIndicadorResultado.style.color = '#b91c1c';
+            }
+        }
+
+        // 4. Saldo de Comissão ML = VR Comissão
+        const saldoComissao = vrComissaoNum;
+
+        if (mlIndicadorSaldoComissao) {
+            mlIndicadorSaldoComissao.textContent = formatarMoeda(saldoComissao);
+        }
+    }
+
+    // 15.6. Upload de Comprovantes ML
+    const dropzoneMl = document.getElementById('dropzone-comprovantes-ml');
+    const inputFileMl = document.getElementById('input-arquivos-despesas-ml');
+    const listaPreviewMl = document.getElementById('lista-anexos-preview-ml');
+    const contadorAnexosMl = document.getElementById('contador-anexos-ml');
+    let arquivosComprovantesMl = [];
+
+    function renderizarListaAnexosMl() {
+        if (!listaPreviewMl) return;
+        listaPreviewMl.innerHTML = '';
+
+        arquivosComprovantesMl.forEach((arq, index) => {
+            const item = document.createElement('div');
+            item.className = 'item-anexo-card';
+            const ehPdf = arq.name.toLowerCase().endsWith('.pdf');
+            const iconeSvg = ehPdf ?
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>` :
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></circle><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+
+            item.innerHTML = `
+                <div class="item-anexo-info">
+                    ${iconeSvg}
+                    <div class="item-anexo-detalhes">
+                        <div class="item-anexo-nome" title="${arq.name}">${arq.name}</div>
+                        <div class="item-anexo-tamanho">${formatarTamanhoArquivo(arq.size)}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-remover-anexo" data-index="${index}" title="Remover anexo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            `;
+            listaPreviewMl.appendChild(item);
+        });
+
+        if (contadorAnexosMl) {
+            contadorAnexosMl.textContent = `${arquivosComprovantesMl.length} arquivo(s)`;
+        }
+
+        listaPreviewMl.querySelectorAll('.btn-remover-anexo').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                arquivosComprovantesMl.splice(idx, 1);
+                renderizarListaAnexosMl();
+                salvarProgressoMl();
+            });
+        });
+    }
+
+    if (dropzoneMl && inputFileMl) {
+        dropzoneMl.addEventListener('click', () => inputFileMl.click());
+
+        inputFileMl.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                adicionarArquivosMl(e.target.files);
+                inputFileMl.value = '';
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzoneMl.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzoneMl.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzoneMl.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzoneMl.classList.remove('dragover');
+            });
+        });
+
+        dropzoneMl.addEventListener('drop', (e) => {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                adicionarArquivosMl(e.dataTransfer.files);
+            }
+        });
+    }
+
+    function adicionarArquivosMl(novosArquivos) {
+        let adicionados = 0;
+        for (let i = 0; i < novosArquivos.length; i++) {
+            const file = novosArquivos[i];
+            if (file.size > 15 * 1024 * 1024) {
+                exibirToast(`Arquivo "${file.name}" excede 15MB.`, 'erro');
+                continue;
+            }
+            arquivosComprovantesMl.push({
+                name: file.name,
+                size: file.size,
+                type: file.type
+            });
+            adicionados++;
+        }
+
+        if (adicionados > 0) {
+            renderizarListaAnexosMl();
+            salvarProgressoMl();
+            exibirToast(`${adicionados} arquivo(s) anexado(s) com sucesso!`, 'sucesso');
+        }
+    }
+
+    // 15.7. Lixeiras e Limpeza do Formulário ML
+    const btnLixeiraFretesMl = document.getElementById('btn-lixeira-fretes-ml');
+    const popoverLimparFretesMl = document.getElementById('popover-limpar-fretes-ml');
+    const fecharPopoverFretesMl = document.getElementById('fechar-popover-fretes-ml');
+    const btnLimparFretesMlPreenchidas = document.getElementById('btn-limpar-fretes-ml-preenchidas');
+    const btnLimparFretesMlTodas = document.getElementById('btn-limpar-fretes-ml-todas');
+
+    const btnLixeiraAbastMl = document.getElementById('btn-lixeira-abast-ml');
+    const popoverLimparAbastMl = document.getElementById('popover-limpar-abast-ml');
+    const fecharPopoverAbastMl = document.getElementById('fechar-popover-abast-ml');
+    const btnLimparAbastMlPreenchidas = document.getElementById('btn-limpar-abast-ml-preenchidas');
+    const btnLimparAbastMlTodas = document.getElementById('btn-limpar-abast-ml-todas');
+
+    const btnLixeiraDespesasMl = document.getElementById('btn-lixeira-despesas-ml');
+    const popoverLimparDespesasMl = document.getElementById('popover-limpar-despesas-ml');
+    const fecharPopoverDespesasMl = document.getElementById('fechar-popover-despesas-ml');
+    const btnLimparDespesasMlPreenchidas = document.getElementById('btn-limpar-despesas-ml-preenchidas');
+    const btnLimparDespesasMlTodas = document.getElementById('btn-limpar-despesas-ml-todas');
+
+    // Popover Fretes ML
+    if (btnLixeiraFretesMl && popoverLimparFretesMl) {
+        btnLixeiraFretesMl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popoverLimparAbastMl) popoverLimparAbastMl.classList.add('oculto');
+            if (popoverLimparDespesasMl) popoverLimparDespesasMl.classList.add('oculto');
+            popoverLimparFretesMl.classList.toggle('oculto');
+        });
+    }
+    if (fecharPopoverFretesMl && popoverLimparFretesMl) {
+        fecharPopoverFretesMl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popoverLimparFretesMl.classList.add('oculto');
+        });
+    }
+
+    // Popover Abastecimento ML
+    if (btnLixeiraAbastMl && popoverLimparAbastMl) {
+        btnLixeiraAbastMl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popoverLimparFretesMl) popoverLimparFretesMl.classList.add('oculto');
+            if (popoverLimparDespesasMl) popoverLimparDespesasMl.classList.add('oculto');
+            popoverLimparAbastMl.classList.toggle('oculto');
+        });
+    }
+    if (fecharPopoverAbastMl && popoverLimparAbastMl) {
+        fecharPopoverAbastMl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popoverLimparAbastMl.classList.add('oculto');
+        });
+    }
+
+    // Popover Despesas ML
+    if (btnLixeiraDespesasMl && popoverLimparDespesasMl) {
+        btnLixeiraDespesasMl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popoverLimparFretesMl) popoverLimparFretesMl.classList.add('oculto');
+            if (popoverLimparAbastMl) popoverLimparAbastMl.classList.add('oculto');
+            popoverLimparDespesasMl.classList.toggle('oculto');
+        });
+    }
+    if (fecharPopoverDespesasMl && popoverLimparDespesasMl) {
+        fecharPopoverDespesasMl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popoverLimparDespesasMl.classList.add('oculto');
+        });
+    }
+
+    // Fechar popovers ML ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (popoverLimparFretesMl && !popoverLimparFretesMl.contains(e.target) && e.target !== btnLixeiraFretesMl && !btnLixeiraFretesMl?.contains(e.target)) {
+            popoverLimparFretesMl.classList.add('oculto');
+        }
+        if (popoverLimparAbastMl && !popoverLimparAbastMl.contains(e.target) && e.target !== btnLixeiraAbastMl && !btnLixeiraAbastMl?.contains(e.target)) {
+            popoverLimparAbastMl.classList.add('oculto');
+        }
+        if (popoverLimparDespesasMl && !popoverLimparDespesasMl.contains(e.target) && e.target !== btnLixeiraDespesasMl && !btnLixeiraDespesasMl?.contains(e.target)) {
+            popoverLimparDespesasMl.classList.add('oculto');
+        }
+    });
+
+    // Ações de Limpeza de Fretes
+    if (btnLimparFretesMlPreenchidas) {
+        btnLimparFretesMlPreenchidas.addEventListener('click', () => {
+            let limpos = 0;
+            for (let i = 1; i <= 8; i++) {
+                const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
+                const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
+                const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
+                const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+
+                if ((dt && dt.value) || (og && og.value) || (dst && dst.value) || (vl && vl.value)) {
+                    if (dt) dt.value = '';
+                    if (og) og.value = '';
+                    if (dst) dst.value = '';
+                    if (vl) vl.value = '';
+                    limpos++;
+                }
+            }
+            if (popoverLimparFretesMl) popoverLimparFretesMl.classList.add('oculto');
+            calcularTotaisFreteMl();
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
+            exibirToast(`${limpos} frete(s) limpo(s)!`, 'sucesso');
+        });
+    }
+
+    if (btnLimparFretesMlTodas) {
+        btnLimparFretesMlTodas.addEventListener('click', () => {
+            for (let i = 1; i <= 8; i++) {
+                const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
+                const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
+                const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
+                const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+
+                if (dt) dt.value = '';
+                if (og) og.value = '';
+                if (dst) dst.value = '';
+                if (vl) vl.value = '';
+            }
+            if (popoverLimparFretesMl) popoverLimparFretesMl.classList.add('oculto');
+            calcularTotaisFreteMl();
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
+            exibirToast('Todas as 8 linhas de frete foram limpas!', 'sucesso');
+        });
+    }
+
+    // Ações de Limpeza de Abastecimento ML
+    if (btnLimparAbastMlPreenchidas) {
+        btnLimparAbastMlPreenchidas.addEventListener('click', () => {
+            let limpos = 0;
+            for (let i = 1; i <= 10; i++) {
+                const posto = document.querySelector(`input[name="posto_ml_${i}"]`);
+                const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
+                const km = document.querySelector(`input[name="km_ml_${i}"]`);
+                const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
+                const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+
+                if ((posto && posto.value) || (nf && nf.value) || (km && km.value) || (valor && valor.value) || (litros && litros.value)) {
+                    if (posto) posto.value = '';
+                    if (nf) nf.value = '';
+                    if (km) km.value = '';
+                    if (valor) valor.value = '';
+                    if (litros) litros.value = '';
+                    limpos++;
+                }
+            }
+            if (popoverLimparAbastMl) popoverLimparAbastMl.classList.add('oculto');
+            calcularTotaisAbastecimentoMl();
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
+            exibirToast(`${limpos} linha(s) de abastecimento ML limpa(s)!`, 'sucesso');
+        });
+    }
+
+    if (btnLimparAbastMlTodas) {
+        btnLimparAbastMlTodas.addEventListener('click', () => {
+            for (let i = 1; i <= 10; i++) {
+                const posto = document.querySelector(`input[name="posto_ml_${i}"]`);
+                const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
+                const km = document.querySelector(`input[name="km_ml_${i}"]`);
+                const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
+                const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+
+                if (posto) posto.value = '';
+                if (nf) nf.value = '';
+                if (km) km.value = '';
+                if (valor) valor.value = '';
+                if (litros) litros.value = '';
+            }
+            if (popoverLimparAbastMl) popoverLimparAbastMl.classList.add('oculto');
+            calcularTotaisAbastecimentoMl();
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
+            exibirToast('Todas as 10 linhas de abastecimento ML foram limpas!', 'sucesso');
+        });
+    }
+
+    // Ações de Limpeza de Despesas ML (Sem Arla)
+    if (btnLimparDespesasMlPreenchidas) {
+        btnLimparDespesasMlPreenchidas.addEventListener('click', () => {
+            inputsImpostoPedagioMl.forEach(input => {
+                if (input) input.value = '';
+            });
+            for (let i = 1; i <= 5; i++) {
+                const desc = document.querySelector(`input[name="ml_outra_desc_${i}"]`);
+                const vl = document.querySelector(`input[name="ml_outra_valor_${i}"]`);
+                if (desc) desc.value = '';
+                if (vl) vl.value = '';
+            }
+
+            if (popoverLimparDespesasMl) popoverLimparDespesasMl.classList.add('oculto');
+            calcularTotaisDespesasMl();
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
+            exibirToast('Despesas preenchidas foram limpas!', 'sucesso');
+        });
+    }
+
+    if (btnLimparDespesasMlTodas) {
+        btnLimparDespesasMlTodas.addEventListener('click', () => {
+            inputsImpostoPedagioMl.forEach(input => {
+                if (input) input.value = '';
+            });
+            for (let i = 1; i <= 5; i++) {
+                const desc = document.querySelector(`input[name="ml_outra_desc_${i}"]`);
+                const vl = document.querySelector(`input[name="ml_outra_valor_${i}"]`);
+                if (desc) desc.value = '';
+                if (vl) vl.value = '';
+            }
+
+            if (popoverLimparDespesasMl) popoverLimparDespesasMl.classList.add('oculto');
+            calcularTotaisDespesasMl();
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
+            exibirToast('Todas as despesas operacionais ML foram redefinidas!', 'sucesso');
+        });
+    }
+
+    // 15.8. Persistência de Dados ML (Salvar e Restaurar Rascunho)
+    function salvarProgressoMl() {
+        try {
+            const fretesMl = [];
+            for (let i = 1; i <= 8; i++) {
+                fretesMl.push({
+                    data: document.querySelector(`input[name="data_frete_ml_${i}"]`)?.value || '',
+                    origem: document.querySelector(`input[name="origem_frete_ml_${i}"]`)?.value || '',
+                    destino: document.querySelector(`input[name="destino_frete_ml_${i}"]`)?.value || '',
+                    valor: document.querySelector(`input[name="valor_frete_ml_${i}"]`)?.value || ''
+                });
+            }
+
+            const abastecimentosMl = [];
+            for (let i = 1; i <= 10; i++) {
+                abastecimentosMl.push({
+                    posto: document.querySelector(`input[name="posto_ml_${i}"]`)?.value || '',
+                    nf: document.querySelector(`input[name="nf_ml_${i}"]`)?.value || '',
+                    km: document.querySelector(`input[name="km_ml_${i}"]`)?.value || '',
+                    valor: document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '',
+                    litros: document.querySelector(`input[name="litros_ml_${i}"]`)?.value || ''
+                });
+            }
+
+            const outrasDespesasMl = [];
+            for (let i = 1; i <= 5; i++) {
+                outrasDespesasMl.push({
+                    desc: document.querySelector(`input[name="ml_outra_desc_${i}"]`)?.value || '',
+                    valor: document.querySelector(`input[name="ml_outra_valor_${i}"]`)?.value || ''
+                });
+            }
+
+            const dadosMl = {
+                fretes: fretesMl,
+                abastecimentos: abastecimentosMl,
+                impFederal: inputMlImpFederal?.value || '',
+                impAdic: inputMlImpAdic?.value || '',
+                pedagio1: inputMlPedagio1?.value || '',
+                pedagio2: inputMlPedagio2?.value || '',
+                pedagio3: inputMlPedagio3?.value || '',
+                outrasDespesas: outrasDespesasMl,
+                anexos: arquivosComprovantesMl
+            };
+
+            localStorage.setItem(STORAGE_ML_KEY, JSON.stringify(dadosMl));
+        } catch (e) {
+            console.error('Erro ao salvar progresso ML:', e);
+        }
+    }
+
+    function carregarProgressoMl() {
+        try {
+            const salvo = localStorage.getItem(STORAGE_ML_KEY);
+            if (salvo) {
+                const dados = JSON.parse(salvo);
+
+                // Restaurar fretes
+                if (Array.isArray(dados.fretes)) {
+                    dados.fretes.forEach((f, idx) => {
+                        const i = idx + 1;
+                        const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
+                        const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
+                        const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
+                        const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+
+                        if (dt && f.data) dt.value = f.data;
+                        if (og && f.origem) og.value = f.origem;
+                        if (dst && f.destino) dst.value = f.destino;
+                        if (vl && f.valor) vl.value = f.valor;
+                    });
+                }
+
+                // Restaurar abastecimento
+                if (Array.isArray(dados.abastecimentos)) {
+                    dados.abastecimentos.forEach((ab, idx) => {
+                        const i = idx + 1;
+                        const posto = document.querySelector(`input[name="posto_ml_${i}"]`);
+                        const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
+                        const km = document.querySelector(`input[name="km_ml_${i}"]`);
+                        const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
+                        const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+
+                        if (posto && ab.posto) posto.value = ab.posto;
+                        if (nf && ab.nf) nf.value = ab.nf;
+                        if (km && ab.km) km.value = ab.km;
+                        if (valor && ab.valor) valor.value = ab.valor;
+                        if (litros && ab.litros) litros.value = ab.litros;
+                    });
+                }
+
+                // Restaurar Impostos e Pedágios
+                if (inputMlImpFederal && dados.impFederal) inputMlImpFederal.value = dados.impFederal;
+                if (inputMlImpAdic && dados.impAdic) inputMlImpAdic.value = dados.impAdic;
+                if (inputMlPedagio1 && dados.pedagio1) inputMlPedagio1.value = dados.pedagio1;
+                if (inputMlPedagio2 && dados.pedagio2) inputMlPedagio2.value = dados.pedagio2;
+                if (inputMlPedagio3 && dados.pedagio3) inputMlPedagio3.value = dados.pedagio3;
+
+                // Restaurar Outras Despesas
+                if (Array.isArray(dados.outrasDespesas)) {
+                    dados.outrasDespesas.forEach((od, idx) => {
+                        const i = idx + 1;
+                        const desc = document.querySelector(`input[name="ml_outra_desc_${i}"]`);
+                        const vl = document.querySelector(`input[name="ml_outra_valor_${i}"]`);
+                        if (desc && od.desc) desc.value = od.desc;
+                        if (vl && od.valor) vl.value = od.valor;
+                    });
+                }
+
+                // Restaurar Anexos
+                if (Array.isArray(dados.anexos)) {
+                    arquivosComprovantesMl = dados.anexos;
+                    renderizarListaAnexosMl();
+                }
+
+                calcularTotaisFreteMl();
+                calcularTotaisAbastecimentoMl();
+                calcularTotaisDespesasMl();
+                calcularIndicadoresViagemMl();
+            }
+        } catch (e) {
+            console.error('Erro ao carregar rascunho ML:', e);
+        }
+    }
+
+    // Botões de ação ML
+    const btnSalvarRascunhoMl = document.getElementById('btn-salvar-rascunho-ml');
+    if (btnSalvarRascunhoMl) {
+        btnSalvarRascunhoMl.addEventListener('click', () => {
+            salvarProgressoMl();
+            salvarProgressoAutomatico();
+            exibirToast('Rascunho do Relatório de viagem - ML salvo com sucesso!', 'sucesso');
+        });
+    }
+
+    const btnFinalizarRelatorioMl = document.getElementById('btn-finalizar-relatorio-ml');
+    if (btnFinalizarRelatorioMl) {
+        btnFinalizarRelatorioMl.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            const motoristaPreenchido = inputMotorista && inputMotorista.value.trim() !== '';
+            const placasPreenchida = inputPlacas && inputPlacas.value.trim() !== '';
+            const impostoFederalPreenchido = inputMlImpFederal && inputMlImpFederal.value.trim() !== '';
+
+            if (!motoristaPreenchido || !placasPreenchida) {
+                exibirToast('Preencha os dados do motorista e placa no cabeçalho.', 'erro');
+                if (!motoristaPreenchido && inputMotorista) inputMotorista.focus();
+                else if (!placasPreenchida && inputPlacas) inputPlacas.focus();
+                return;
+            }
+
+            if (!impostoFederalPreenchido) {
+                exibirToast('O valor do Imposto Federal é obrigatório no Relatório ML.', 'erro');
+                if (inputMlImpFederal) inputMlImpFederal.focus();
+                return;
+            }
+
+            salvarProgressoMl();
+            salvarProgressoAutomatico();
+            exibirToast('Relatório de Viagem - ML finalizado e emitido com sucesso!', 'sucesso');
+        });
+    }
+
     carregarProgresso();
+    carregarProgressoMl();
 });
